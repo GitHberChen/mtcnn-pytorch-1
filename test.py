@@ -8,5 +8,6 @@ def main():
     image = show_bboxes(image, bounding_boxes, landmarks)
     image.show()
 
+
 if __name__ == "__main__":
     main()
