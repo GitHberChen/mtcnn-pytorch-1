@@ -5,17 +5,22 @@ from collections import OrderedDict
 import numpy as np
 import os
 
+
 class Flatten(nn.Module):
     def __init__(self):
         super(Flatten, self).__init__()
+
     def forward(self, x):
         x = x.transpose(3, 2).contiguous()
         return x.view(x.size(0), -1)
 
+
 class PNet(nn.Module):
     def __init__(self):
         super(PNet, self).__init__()
-        self.model_path,_ = os.path.split(os.path.realpath(__file__))
+        # os.path.split 将文件的路径和文件名拆开
+        # __file__ 代表本文件的路径，根据当前运行环境的路径计算
+        self.model_path, _ = os.path.split(os.path.realpath(__file__))
         self.features = nn.Sequential(OrderedDict([
             ('conv1', nn.Conv2d(3, 10, 3, 1)),
             ('prelu1', nn.PReLU(10)),
@@ -28,6 +33,7 @@ class PNet(nn.Module):
         self.conv4_1 = nn.Conv2d(32, 2, 1, 1)
         self.conv4_2 = nn.Conv2d(32, 4, 1, 1)
         weights = np.load(os.path.join(self.model_path, 'weights', 'pnet.npy'))[()]
+        # 网络结构的名称和参数：
         for n, p in self.named_parameters():
             p.data = torch.FloatTensor(weights[n])
 
@@ -38,10 +44,11 @@ class PNet(nn.Module):
         a = F.softmax(a, dim=1)
         return b, a
 
+
 class RNet(nn.Module):
     def __init__(self):
         super(RNet, self).__init__()
-        self.model_path,_ = os.path.split(os.path.realpath(__file__))
+        self.model_path, _ = os.path.split(os.path.realpath(__file__))
         self.features = nn.Sequential(OrderedDict([
             ('conv1', nn.Conv2d(3, 28, 3, 1)),
             ('prelu1', nn.PReLU(28)),
@@ -68,10 +75,11 @@ class RNet(nn.Module):
         a = F.softmax(a, dim=1)
         return b, a
 
+
 class ONet(nn.Module):
     def __init__(self):
         super(ONet, self).__init__()
-        self.model_path,_ = os.path.split(os.path.realpath(__file__))
+        self.model_path, _ = os.path.split(os.path.realpath(__file__))
         self.features = nn.Sequential(OrderedDict([
             ('conv1', nn.Conv2d(3, 32, 3, 1)),
             ('prelu1', nn.PReLU(32)),
