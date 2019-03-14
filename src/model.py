@@ -42,6 +42,7 @@ class PNet(nn.Module):
         a = self.conv4_1(x)
         b = self.conv4_2(x)
         a = F.softmax(a, dim=1)
+        # a [batches, 2, 1, 1]
         return b, a
 
 

@@ -38,7 +38,10 @@ def nms(boxes, overlap_threshold=0.5, mode='union'):
 
 
 def convert_to_square(bboxes):
-    """ Convert bounding boxes to a square form. """
+    """
+    Convert bounding boxes to a square form.
+    """
+    # 将矩形对称扩大为正方形
     square_bboxes = np.zeros_like(bboxes)
     x1, y1, x2, y2 = [bboxes[:, i] for i in range(4)]
     h = y2 - y1 + 1.0
@@ -129,6 +132,7 @@ def _preprocess(img):
     """Preprocessing step before feeding the network. """
     img = img.transpose((2, 0, 1))
     img = np.expand_dims(img, 0)
+    # *0.0078125 i.e. 除以128
     img = (img - 127.5)*0.0078125
     return img
 
