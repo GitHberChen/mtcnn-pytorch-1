@@ -33,12 +33,19 @@ def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
     for s in scales:  # run P-Net on different scales
         boxes = run_first_stage(image, pnet, scale=s, threshold=thresholds[0])
         bounding_boxes.append(boxes)
+        # bounding_boxes shape:[scales,boxes_num_each_sale,5]
+    # 把每个scale找到的框框全部打开堆在一起
+    # [total_boxes_num, 5] 是list
     bounding_boxes = [i for i in bounding_boxes if i is not None]
+    # print(len(bounding_boxes), len(bounding_boxes[0]))
     bounding_boxes = np.vstack(bounding_boxes)
+    # print(bounding_boxes.shape)
 
     keep = nms(bounding_boxes[:, 0:5], nms_thresholds[0])
     bounding_boxes = bounding_boxes[keep]
+    # 根据 w、h 对 x1,y1,x2,y2 的位置进行微调
     bounding_boxes = calibrate_box(bounding_boxes[:, 0:5], bounding_boxes[:, 5:])
+    # 将检测出的框转化成矩形
     bounding_boxes = convert_to_square(bounding_boxes)
     bounding_boxes[:, 0:4] = np.round(bounding_boxes[:, 0:4])
 
@@ -72,6 +79,7 @@ def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
 
     keep = np.where(probs[:, 1] > thresholds[2])[0]
     bounding_boxes = bounding_boxes[keep]
+    # 用更大模型的置信度对原置信度进行更新
     bounding_boxes[:, 4] = probs[keep, 1].reshape((-1,))
     offsets = offsets[keep]
     landmarks = landmarks[keep]
@@ -80,6 +88,8 @@ def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
     width = bounding_boxes[:, 2] - bounding_boxes[:, 0] + 1.0
     height = bounding_boxes[:, 3] - bounding_boxes[:, 1] + 1.0
     xmin, ymin = bounding_boxes[:, 0], bounding_boxes[:, 1]
+    # landmark[,前5个为x，后5个为y]
+    # 在左上角坐标的基础上，通过 w，h 确定脸各关键点的坐标。
     landmarks[:, 0:5] = np.expand_dims(xmin, 1) + np.expand_dims(width, 1) * landmarks[:, 0:5]
     landmarks[:, 5:10] = np.expand_dims(ymin, 1) + np.expand_dims(height, 1) * landmarks[:, 5:10]
 
@@ -104,15 +114,17 @@ def run_first_stage(image, net, scale, threshold):
 
     output = net(img)
     # 只有一张图 batch = 1，所以 [0, ,:,:]
-    # [ , 1,:,:]代表1的概率
+    # [ , 1,:,:]代表 face=True 的概率
     probs = output[1].data.numpy()[0, 1, :, :]
     # offsets shape[4, o_h,o_w]
     offsets = output[0].data.numpy()
-
+    # boxes
     boxes = _generate_bboxes(probs, offsets, scale, threshold)
     if len(boxes) == 0:
         return None
 
+    # [[x1,y1,x2,y2,score,offsets],[]...]
+    # 只取4个坐标加一个置信度进行nms
     keep = nms(boxes[:, 0:5], overlap_threshold=0.5)
     return boxes[keep]
 
@@ -143,5 +155,14 @@ def _generate_bboxes(probs, offsets, scale, threshold):
         np.round((stride * inds[0] + 1.0 + cell_size) / scale),
         score, offsets
     ])
-
+    # from
+    # [[x1,x1,...]
+    #  [y1,y1,...]
+    #  [x2,x2,...]
+    #  [y2,y2,...]
+    # ]to
+    # [[x1,y1,x2,y2,score,offsets],[]...]
+    # shape[9,boxes_num]
+    # print(bounding_boxes.shape)
+    # print(bounding_boxes.T.shape)
     return bounding_boxes.T

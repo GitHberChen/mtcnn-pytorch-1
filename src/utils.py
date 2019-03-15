@@ -11,6 +11,7 @@ def nms(boxes, overlap_threshold=0.5, mode='union'):
     scores = boxes[:, 4]
 
     areas = (x2 - x1 + 1) * (y2 - y1 + 1)
+    # argsort()默认从小到大排序，取反后就是从大到小
     order = scores.argsort()[::-1]
 
     keep = []
@@ -33,7 +34,7 @@ def nms(boxes, overlap_threshold=0.5, mode='union'):
 
         inds = np.where(ovr <= overlap_threshold)[0]
         order = order[inds + 1]
-
+    print(keep)
     return keep
 
 
@@ -62,7 +63,9 @@ def calibrate_box(bboxes, offsets):
     x1, y1, x2, y2 = [bboxes[:, i] for i in range(4)]
     w = x2 - x1 + 1.0
     h = y2 - y1 + 1.0
+    # w [w_len, 1]
     w = np.expand_dims(w, 1)
+    # h [h_len, 1]
     h = np.expand_dims(h, 1)
 
     translation = np.hstack([w, h, w, h])*offsets
